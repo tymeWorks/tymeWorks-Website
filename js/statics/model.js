@@ -7,11 +7,14 @@ import {
   OBJECT_TYPES,
   SCENE_MARGIN,
   SCENE_SIZE,
+  SUPPORT_PLACEMENT,
 } from "./constants.js";
 
 import {
   createGround,
+  createPinSupport,
   createRigidBody,
+  createRollerSupport,
 } from "./objects.js";
 
 const state = {
@@ -61,7 +64,7 @@ export function addRigidBodyAt(requestedX, requestedY) {
     };
   }
 
-  const ground = getGround();
+  const ground = getGroundInternal();
 
   if (!ground) {
     return {
@@ -111,16 +114,123 @@ export function addRigidBodyAt(requestedX, requestedY) {
   };
 }
 
-export function hasRigidBody() {
-  return state.objects.some(
-    (object) => object.type === OBJECT_TYPES.RIGID_BODY
+/**
+ * Adds a support to the bottom edge of the rigid body.
+ *
+ * The user may click anywhere inside the body. The support will snap to
+ * the bottom edge at the corresponding local x coordinate.
+ */
+export function addSupportAt(
+  supportType,
+  requestedX,
+  requestedY
+) {
+  if (!Number.isFinite(requestedX) || !Number.isFinite(requestedY)) {
+    return {
+      ok: false,
+      message: "The support position is invalid.",
+    };
+  }
+
+  const body = getRigidBodyInternal();
+
+  if (!body) {
+    return {
+      ok: false,
+      message:
+        "Add a rigid body before placing a support.",
+    };
+  }
+
+  const localPoint = convertScenePointToBodyLocal(
+    body,
+    requestedX,
+    requestedY
   );
+
+  const halfWidth = body.width / 2;
+  const halfHeight = body.height / 2;
+  const tolerance = SUPPORT_PLACEMENT.bodyHitTolerance;
+
+  const pointIsNearBody =
+    Math.abs(localPoint.x) <= halfWidth + tolerance &&
+    Math.abs(localPoint.y) <= halfHeight + tolerance;
+
+  if (!pointIsNearBody) {
+    return {
+      ok: false,
+      message:
+        "Click on the rigid body to attach the support.",
+    };
+  }
+
+  const attachmentLocalX = clamp(
+    localPoint.x,
+    -halfWidth,
+    halfWidth
+  );
+
+  const attachmentLocalY = halfHeight;
+
+  if (
+    hasNearbySupport(
+      body.id,
+      attachmentLocalX
+    )
+  ) {
+    return {
+      ok: false,
+      message:
+        "Another support is already too close to this position.",
+    };
+  }
+
+  const commonProperties = {
+    bodyId: body.id,
+    localX: attachmentLocalX,
+    localY: attachmentLocalY,
+  };
+
+  let support;
+
+  if (supportType === OBJECT_TYPES.PIN_SUPPORT) {
+    support = createPinSupport({
+      id: createSequentialId("pin"),
+      ...commonProperties,
+    });
+  } else if (
+    supportType === OBJECT_TYPES.ROLLER_SUPPORT
+  ) {
+    support = createRollerSupport({
+      id: createSequentialId("roller"),
+      ...commonProperties,
+      normalAngle: 90,
+    });
+  } else {
+    return {
+      ok: false,
+      message: "The requested support type is not supported.",
+    };
+  }
+
+  state.objects.push(support);
+
+  return {
+    ok: true,
+    object: cloneObject(support),
+    message:
+      supportType === OBJECT_TYPES.PIN_SUPPORT
+        ? "Pin support attached to the rigid body."
+        : "Roller support attached to the rigid body.",
+  };
+}
+
+export function hasRigidBody() {
+  return Boolean(getRigidBodyInternal());
 }
 
 export function getGround() {
-  const ground = state.objects.find(
-    (object) => object.type === OBJECT_TYPES.GROUND
-  );
+  const ground = getGroundInternal();
 
   return ground ? cloneObject(ground) : null;
 }
@@ -136,8 +246,88 @@ export function getModelSnapshot() {
   };
 }
 
+function getGroundInternal() {
+  return state.objects.find(
+    (object) => object.type === OBJECT_TYPES.GROUND
+  );
+}
+
+function getRigidBodyInternal() {
+  return state.objects.find(
+    (object) => object.type === OBJECT_TYPES.RIGID_BODY
+  );
+}
+
+function hasNearbySupport(bodyId, localX) {
+  return state.objects.some((object) => {
+    const isSupport =
+      object.type === OBJECT_TYPES.PIN_SUPPORT ||
+      object.type === OBJECT_TYPES.ROLLER_SUPPORT;
+
+    if (!isSupport || object.bodyId !== bodyId) {
+      return false;
+    }
+
+    return (
+      Math.abs(object.localX - localX) <
+      SUPPORT_PLACEMENT.minimumSpacing
+    );
+  });
+}
+
+function createSequentialId(prefix) {
+  const matchingObjects = state.objects.filter(
+    (object) => object.id.startsWith(`${prefix}-`)
+  );
+
+  let sequenceNumber = matchingObjects.length + 1;
+  let candidateId = `${prefix}-${sequenceNumber}`;
+
+  while (
+    state.objects.some(
+      (object) => object.id === candidateId
+    )
+  ) {
+    sequenceNumber += 1;
+    candidateId = `${prefix}-${sequenceNumber}`;
+  }
+
+  return candidateId;
+}
+
+/**
+ * Converts an SVG scene coordinate into the body's local coordinate system.
+ */
+function convertScenePointToBodyLocal(
+  body,
+  sceneX,
+  sceneY
+) {
+  const angleRadians =
+    (body.rotation * Math.PI) / 180;
+
+  const cosine = Math.cos(angleRadians);
+  const sine = Math.sin(angleRadians);
+
+  const deltaX = sceneX - body.centerX;
+  const deltaY = sceneY - body.centerY;
+
+  return {
+    x: deltaX * cosine + deltaY * sine,
+    y: -deltaX * sine + deltaY * cosine,
+  };
+}
+
 function cloneObject(object) {
-  return { ...object };
+  const clone = { ...object };
+
+  if (Array.isArray(object.reactionDirections)) {
+    clone.reactionDirections = [
+      ...object.reactionDirections,
+    ];
+  }
+
+  return clone;
 }
 
 function clamp(value, minimum, maximum) {
