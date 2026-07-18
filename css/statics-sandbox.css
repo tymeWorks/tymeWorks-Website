@@ -626,3 +626,41 @@ button {
   stroke: #ffffff;
   stroke-width: 2;
 }
+
+/* Milestone 2B: support objects */
+
+.scene-support {
+  cursor: default;
+}
+
+.support-stem,
+.support-base-line,
+.support-roller-plate {
+  fill: none;
+  stroke: #292927;
+  stroke-width: 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.support-pin-shape {
+  fill: rgba(255, 107, 53, 0.12);
+  stroke: #292927;
+  stroke-width: 4;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.support-roller-wheel {
+  fill: #ffffff;
+  stroke: #292927;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.support-anchor {
+  fill: var(--accent);
+  stroke: #ffffff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
