@@ -227,6 +227,90 @@ export function addSupportAt(
   };
 }
 
+
+
+/**
+ * Adds a concentrated force at a point on the rigid body.
+ */
+export function addPointForceAt(
+  requestedX,
+  requestedY
+) {
+  if (
+    !Number.isFinite(requestedX) ||
+    !Number.isFinite(requestedY)
+  ) {
+    return {
+      ok: false,
+      message: "The force position is invalid.",
+    };
+  }
+
+  const body = getRigidBodyInternal();
+
+  if (!body) {
+    return {
+      ok: false,
+      message:
+        "Add a rigid body before placing a force.",
+    };
+  }
+
+  const localPoint = convertScenePointToBodyLocal(
+    body,
+    requestedX,
+    requestedY
+  );
+
+  const halfWidth = body.width / 2;
+  const halfHeight = body.height / 2;
+  const tolerance =
+    LOAD_PLACEMENT.bodyHitTolerance;
+
+  const pointIsNearBody =
+    Math.abs(localPoint.x) <= halfWidth + tolerance &&
+    Math.abs(localPoint.y) <= halfHeight + tolerance;
+
+  if (!pointIsNearBody) {
+    return {
+      ok: false,
+      message:
+        "Click on the rigid body to apply the force.",
+    };
+  }
+
+  const force = createPointForce({
+    id: createSequentialId("force"),
+    bodyId: body.id,
+
+    localX: clamp(
+      localPoint.x,
+      -halfWidth,
+      halfWidth
+    ),
+
+    localY: clamp(
+      localPoint.y,
+      -halfHeight,
+      halfHeight
+    ),
+
+    ...DEFAULT_POINT_FORCE,
+  });
+
+  state.objects.push(force);
+
+  return {
+    ok: true,
+    object: cloneObject(force),
+    message:
+      "A 10 kN downward point force was added.",
+  };
+}
+
+
+
+
 export function hasRigidBody() {
   return Boolean(getRigidBodyInternal());
 }
