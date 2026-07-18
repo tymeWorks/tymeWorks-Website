@@ -121,6 +121,42 @@ export function createRollerSupport({
   };
 }
 
+/**
+ * Creates a concentrated force connected to a rigid body.
+ *
+ * The angle follows the physical convention:
+ * zero degrees points in the positive x direction and positive angles
+ * are measured counterclockwise.
+ */
+export function createPointForce({
+  id,
+  bodyId,
+  localX,
+  localY,
+  magnitude,
+  angle,
+  unit = "kN",
+}) {
+  validateIdentifier(id);
+  validateIdentifier(bodyId);
+  validateFiniteNumber(localX, "Force local x position");
+  validateFiniteNumber(localY, "Force local y position");
+  validatePositiveNumber(magnitude, "Force magnitude");
+  validateFiniteNumber(angle, "Force angle");
+
+  return {
+    id,
+    type: OBJECT_TYPES.POINT_FORCE,
+    bodyId,
+    localX,
+    localY,
+    magnitude,
+    angle,
+    unit: String(unit),
+    label: "Point force",
+  };
+}
+
 function validateIdentifier(id) {
   if (typeof id !== "string" || id.trim() === "") {
     throw new TypeError("Every model object must have a valid ID.");
