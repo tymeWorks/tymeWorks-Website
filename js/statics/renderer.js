@@ -1,6 +1,9 @@
 "use strict";
 
-import { OBJECT_TYPES } from "./constants.js";
+import { 
+  FORCE_RENDERING,
+  OBJECT_TYPES, 
+} from "./constants.js";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
@@ -42,20 +45,26 @@ export function renderModel(modelSnapshot) {
     sceneLayer.appendChild(renderRigidBody(body));
   }
 
-  objects.forEach((object) => {
+    objects.forEach((object) => {
     if (!body || !ground) {
       return;
     }
-
+  
     if (object.type === OBJECT_TYPES.PIN_SUPPORT) {
       sceneLayer.appendChild(
         renderPinSupport(object, body, ground)
       );
     }
-
+  
     if (object.type === OBJECT_TYPES.ROLLER_SUPPORT) {
       sceneLayer.appendChild(
         renderRollerSupport(object, body, ground)
+      );
+    }
+  
+    if (object.type === OBJECT_TYPES.POINT_FORCE) {
+      sceneLayer.appendChild(
+        renderPointForce(object, body)
       );
     }
   });
@@ -311,6 +320,149 @@ function renderRollerSupport(
 
   return group;
 }
+
+
+
+
+function renderPointForce(force, body) {
+  const anchor = convertBodyLocalPointToScene(
+    body,
+    force.localX,
+    force.localY
+  );
+
+  const angleRadians =
+    (force.angle * Math.PI) / 180;
+
+  /*
+   * Physical y is positive upward, while SVG y is positive downward.
+   */
+  const direction = {
+    x: Math.cos(angleRadians),
+    y: -Math.sin(angleRadians),
+  };
+
+  const perpendicular = {
+    x: -direction.y,
+    y: direction.x,
+  };
+
+  const tail = {
+    x:
+      anchor.x -
+      direction.x *
+        FORCE_RENDERING.arrowLength,
+
+    y:
+      anchor.y -
+      direction.y *
+        FORCE_RENDERING.arrowLength,
+  };
+
+  const arrowBase = {
+    x:
+      anchor.x -
+      direction.x *
+        FORCE_RENDERING.arrowHeadLength,
+
+    y:
+      anchor.y -
+      direction.y *
+        FORCE_RENDERING.arrowHeadLength,
+  };
+
+  const group = createSvgElement("g");
+
+  group.classList.add(
+    "scene-object",
+    "scene-point-force"
+  );
+
+  group.dataset.objectId = force.id;
+  group.dataset.objectType = force.type;
+
+  group.appendChild(
+    createLine(
+      tail.x,
+      tail.y,
+      arrowBase.x,
+      arrowBase.y,
+      "force-shaft"
+    )
+  );
+
+  const arrowHead = createSvgElement("polygon");
+
+  const firstBasePoint = {
+    x:
+      arrowBase.x +
+      perpendicular.x *
+        FORCE_RENDERING.arrowHeadHalfWidth,
+
+    y:
+      arrowBase.y +
+      perpendicular.y *
+        FORCE_RENDERING.arrowHeadHalfWidth,
+  };
+
+  const secondBasePoint = {
+    x:
+      arrowBase.x -
+      perpendicular.x *
+        FORCE_RENDERING.arrowHeadHalfWidth,
+
+    y:
+      arrowBase.y -
+      perpendicular.y *
+        FORCE_RENDERING.arrowHeadHalfWidth,
+  };
+
+  setAttributes(arrowHead, {
+    points: [
+      `${anchor.x},${anchor.y}`,
+      `${firstBasePoint.x},${firstBasePoint.y}`,
+      `${secondBasePoint.x},${secondBasePoint.y}`,
+    ].join(" "),
+  });
+
+  arrowHead.classList.add("force-arrow-head");
+  group.appendChild(arrowHead);
+
+  const applicationPoint =
+    createSvgElement("circle");
+
+  setAttributes(applicationPoint, {
+    cx: anchor.x,
+    cy: anchor.y,
+    r: 5,
+  });
+
+  applicationPoint.classList.add(
+    "force-application-point"
+  );
+
+  group.appendChild(applicationPoint);
+
+  const label = createSvgElement("text");
+
+  setAttributes(label, {
+    x: tail.x + perpendicular.x * 18,
+    y: tail.y + perpendicular.y * 18,
+    "text-anchor": "middle",
+  });
+
+  label.classList.add("force-label");
+  label.textContent =
+    `${force.magnitude} ${force.unit}`;
+
+  group.appendChild(label);
+
+  return group;
+}
+
+
+
+
 
 function createSupportGroup(support) {
   const group = createSvgElement("g");
