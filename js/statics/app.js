@@ -19,7 +19,9 @@ const toolButtons = document.querySelectorAll("[data-tool]");
 const activeToolLabel = document.getElementById(
   "active-tool-label"
 );
+
 const statusText = document.getElementById("status-text");
+
 const statusIndicator = document.getElementById(
   "status-indicator"
 );
@@ -42,7 +44,7 @@ const toolLabels = {
   delete: "Delete",
 };
 
-const supportToolNames = new Set([
+const bodyDependentToolNames = new Set([
   "pin-support",
   "roller-support",
   "force",
@@ -64,7 +66,7 @@ function initializeApplication() {
   setActiveTool("select");
 
   setStatus(
-    "Default model loaded. Add supports to begin constraining the rigid body.",
+    "Default model loaded. Add supports or forces to begin building the model.",
     "success"
   );
 }
@@ -84,8 +86,16 @@ function initializeToolButtons() {
 }
 
 function initializeActionButtons() {
-  solveButton?.addEventListener("click", handleSolve);
-  resetButton?.addEventListener("click", handleReset);
+  solveButton?.addEventListener(
+    "click",
+    handleSolve
+  );
+
+  resetButton?.addEventListener(
+    "click",
+    handleReset
+  );
+
   fbdButton?.addEventListener(
     "click",
     toggleFreeBodyDiagram
@@ -126,19 +136,18 @@ function handleSceneClick(event) {
   }
 
   if (activeTool === "roller-support") {
-  placeSupport(
-    OBJECT_TYPES.ROLLER_SUPPORT,
-    scenePoint
-  );
+    placeSupport(
+      OBJECT_TYPES.ROLLER_SUPPORT,
+      scenePoint
+    );
 
     return;
   }
-  
+
   if (activeTool === "force") {
     placePointForce(scenePoint);
   }
-
-  
+}
 
 function placeRigidBody(scenePoint) {
   const result = addRigidBodyAt(
@@ -176,7 +185,6 @@ function placeSupport(
   setStatus(result.message, "success");
 }
 
-
 function placePointForce(scenePoint) {
   const result = addPointForceAt(
     scenePoint.x,
@@ -193,8 +201,6 @@ function placePointForce(scenePoint) {
   setStatus(result.message, "success");
 }
 
-  
-
 function setActiveTool(toolName) {
   if (toolName === "body" && hasRigidBody()) {
     setStatus(
@@ -205,12 +211,12 @@ function setActiveTool(toolName) {
     return;
   }
 
-   if (
+  if (
     bodyDependentToolNames.has(toolName) &&
     !hasRigidBody()
   ) {
     setStatus(
-      "Add a rigid body before selecting a this tool.",
+      "Add a rigid body before selecting this tool.",
       "warning"
     );
 
@@ -266,7 +272,7 @@ function getToolInstruction(toolName) {
       "Click on the rigid body to apply a 10 kN downward point force.",
 
     moment:
-      "Applied-moment placement will be implemented after support objects.",
+      "Applied-moment placement will be implemented next.",
 
     delete:
       "Object deletion will be implemented with object selection in Milestone 3.",
@@ -330,6 +336,7 @@ function toggleFreeBodyDiagram() {
 
 function renderCurrentModel() {
   const modelSnapshot = getModelSnapshot();
+
   renderModel(modelSnapshot);
 }
 
@@ -345,14 +352,16 @@ function getScenePoint(event) {
     return null;
   }
 
-  const svgPoint = sandboxCanvas.createSVGPoint();
+  const svgPoint =
+    sandboxCanvas.createSVGPoint();
 
   svgPoint.x = event.clientX;
   svgPoint.y = event.clientY;
 
-  const transformedPoint = svgPoint.matrixTransform(
-    transformationMatrix.inverse()
-  );
+  const transformedPoint =
+    svgPoint.matrixTransform(
+      transformationMatrix.inverse()
+    );
 
   return {
     x: transformedPoint.x,
@@ -360,7 +369,10 @@ function getScenePoint(event) {
   };
 }
 
-function setStatus(message, type = "neutral") {
+function setStatus(
+  message,
+  type = "neutral"
+) {
   if (statusText) {
     statusText.textContent = message;
   }
