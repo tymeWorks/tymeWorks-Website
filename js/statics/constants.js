@@ -12,6 +12,7 @@ export const OBJECT_TYPES = Object.freeze({
   RIGID_BODY: "rigid-body",
   PIN_SUPPORT: "pin-support",
   ROLLER_SUPPORT: "roller-support",
+  POINT_FORCE: "point-force",
 });
 
 export const SCENE_SIZE = Object.freeze({
@@ -43,4 +44,20 @@ export const BODY_GROUND_CLEARANCE = 45;
 export const SUPPORT_PLACEMENT = Object.freeze({
   bodyHitTolerance: 18,
   minimumSpacing: 42,
+});
+
+export const LOAD_PLACEMENT = Object.freeze({
+  bodyHitTolerance: 18,
+});
+
+export const DEFAULT_POINT_FORCE = Object.freeze({
+  magnitude: 10,
+  angle: -90,
+  unit: "kN",
+});
+
+export const FORCE_RENDERING = Object.freeze({
+  arrowLength: 120,
+  arrowHeadLength: 18,
+  arrowHeadHalfWidth: 8,
 });
