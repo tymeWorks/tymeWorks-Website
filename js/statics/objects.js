@@ -62,6 +62,65 @@ export function createRigidBody({
   };
 }
 
+/**
+ * Creates a pin support connected to a rigid body.
+ *
+ * localX and localY are measured in the local coordinate system
+ * of the connected rigid body.
+ */
+export function createPinSupport({
+  id,
+  bodyId,
+  localX,
+  localY,
+}) {
+  validateIdentifier(id);
+  validateIdentifier(bodyId);
+  validateFiniteNumber(localX, "Pin-support local x position");
+  validateFiniteNumber(localY, "Pin-support local y position");
+
+  return {
+    id,
+    type: OBJECT_TYPES.PIN_SUPPORT,
+    bodyId,
+    localX,
+    localY,
+    reactionDirections: [0, 90],
+    label: "Pin support",
+  };
+}
+
+/**
+ * Creates a frictionless roller support connected to a rigid body.
+ *
+ * The normal angle uses the physical convention:
+ * zero degrees points in the positive x direction and positive angles
+ * are measured counterclockwise.
+ */
+export function createRollerSupport({
+  id,
+  bodyId,
+  localX,
+  localY,
+  normalAngle = 90,
+}) {
+  validateIdentifier(id);
+  validateIdentifier(bodyId);
+  validateFiniteNumber(localX, "Roller-support local x position");
+  validateFiniteNumber(localY, "Roller-support local y position");
+  validateFiniteNumber(normalAngle, "Roller-support normal angle");
+
+  return {
+    id,
+    type: OBJECT_TYPES.ROLLER_SUPPORT,
+    bodyId,
+    localX,
+    localY,
+    normalAngle,
+    label: "Roller support",
+  };
+}
+
 function validateIdentifier(id) {
   if (typeof id !== "string" || id.trim() === "") {
     throw new TypeError("Every model object must have a valid ID.");
