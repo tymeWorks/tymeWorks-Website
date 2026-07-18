@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta
+    name="description"
+    content="Build two-dimensional rigid-body models and explore static equilibrium from first principles."
+  />
+
+  <title>Statics Sandbox | tymeWorks</title>
+
+  <link rel="stylesheet" href="css/statics-sandbox.css" />
+</head>
+
+<body>
+  <div class="sandbox-app">
+    <!-- Top application bar -->
+    <header class="app-header">
+      <a class="brand" href="index.html" aria-label="Return to tymeWorks home">
+        <span class="brand-tyme">tyme</span>
+        <span class="brand-works">Works</span>
+      </a>
+
+      <div class="app-title">
+        <strong>Statics Sandbox</strong>
+        <span>v0.1</span>
+      </div>
+
+      <div class="header-actions">
+        <button
+          id="fbd-button"
+          class="button button-secondary"
+          type="button"
+          aria-pressed="false"
+        >
+          Free Body Diagram
+        </button>
+
+        <button
+          id="reset-button"
+          class="button button-secondary"
+          type="button"
+        >
+          Reset
+        </button>
+
+        <button
+          id="solve-button"
+          class="button button-primary"
+          type="button"
+        >
+          Solve
+        </button>
+      </div>
+    </header>
+
+    <!-- Main application workspace -->
+    <main class="workspace-layout">
+      <!-- Left toolbar -->
+      <aside class="tool-panel" aria-label="Modeling tools">
+        <div class="tool-group">
+          <span class="tool-group-label">Tools</span>
+
+          <button
+            class="tool-button is-active"
+            type="button"
+            data-tool="select"
+            aria-pressed="true"
+            title="Select"
+          >
+            <span class="tool-icon" aria-hidden="true">↖</span>
+            <span class="tool-name">Select</span>
+          </button>
+
+          <button
+            class="tool-button"
+            type="button"
+            data-tool="body"
+            aria-pressed="false"
+            title="Add rigid body"
+          >
+            <span class="tool-icon" aria-hidden="true">▭</span>
+            <span class="tool-name">Body</span>
+          </button>
+
+          <button
+            class="tool-button"
+            type="button"
+            data-tool="pin-support"
+            aria-pressed="false"
+            title="Add pin support"
+          >
+            <span class="tool-icon" aria-hidden="true">△</span>
+            <span class="tool-name">Pin</span>
+          </button>
+
+          <button
+            class="tool-button"
+            type="button"
+            data-tool="roller-support"
+            aria-pressed="false"
+            title="Add roller support"
+          >
+            <span class="tool-icon" aria-hidden="true">◯</span>
+            <span class="tool-name">Roller</span>
+          </button>
+
+          <button
+            class="tool-button"
+            type="button"
+            data-tool="force"
+            aria-pressed="false"
+            title="Add point force"
+          >
+            <span class="tool-icon" aria-hidden="true">↓</span>
+            <span class="tool-name">Force</span>
+          </button>
+
+          <button
+            class="tool-button"
+            type="button"
+            data-tool="moment"
+            aria-pressed="false"
+            title="Add applied moment"
+          >
+            <span class="tool-icon" aria-hidden="true">↺</span>
+            <span class="tool-name">Moment</span>
+          </button>
+        </div>
+
+        <div class="tool-group tool-group-bottom">
+          <button
+            class="tool-button tool-button-danger"
+            type="button"
+            data-tool="delete"
+            aria-pressed="false"
+            title="Delete selected object"
+          >
+            <span class="tool-icon" aria-hidden="true">×</span>
+            <span class="tool-name">Delete</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Central scene -->
+      <section class="scene-panel" aria-label="Statics modeling workspace">
+        <div class="scene-toolbar">
+          <div>
+            <strong>Model Space</strong>
+            <span id="active-tool-label">Select tool active</span>
+          </div>
+
+          <div class="coordinate-system" aria-label="Global coordinate system">
+            <span class="axis axis-x">x →</span>
+            <span class="axis axis-y">y ↑</span>
+          </div>
+        </div>
+
+        <div id="scene-container" class="scene-container">
+          <svg
+            id="sandbox-canvas"
+            class="sandbox-canvas"
+            viewBox="0 0 1200 700"
+            role="img"
+            aria-label="Empty statics sandbox scene"
+          >
+            <defs>
+              <pattern
+                id="minor-grid"
+                width="25"
+                height="25"
+                patternUnits="userSpaceOnUse"
+              >
+                <path
+                  d="M 25 0 L 0 0 0 25"
+                  class="minor-grid-line"
+                />
+              </pattern>
+
+              <pattern
+                id="major-grid"
+                width="100"
+                height="100"
+                patternUnits="userSpaceOnUse"
+              >
+                <rect
+                  width="100"
+                  height="100"
+                  fill="url(#minor-grid)"
+                />
+
+                <path
+                  d="M 100 0 L 0 0 0 100"
+                  class="major-grid-line"
+                />
+              </pattern>
+            </defs>
+
+            <rect
+              width="1200"
+              height="700"
+              fill="url(#major-grid)"
+            />
+
+            <g id="scene-layer"></g>
+
+            <g id="empty-scene-message">
+              <text
+                x="600"
+                y="325"
+                text-anchor="middle"
+                class="empty-scene-title"
+              >
+                Your model space is empty
+              </text>
+
+              <text
+                x="600"
+                y="360"
+                text-anchor="middle"
+                class="empty-scene-subtitle"
+              >
+                Start by adding a rigid body from the toolbar.
+              </text>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <!-- Right properties panel -->
+      <aside class="properties-panel" aria-label="Object properties">
+        <div class="panel-heading">
+          <div>
+            <span class="panel-eyebrow">Inspector</span>
+            <h2>Properties</h2>
+          </div>
+        </div>
+
+        <div id="properties-content" class="properties-content">
+          <div class="empty-properties">
+            <div class="empty-properties-icon" aria-hidden="true">◇</div>
+
+            <strong>No object selected</strong>
+
+            <p>
+              Select an object in the scene to inspect and edit its
+              properties.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom status area -->
+    <footer class="status-bar">
+      <div class="status-message">
+        <span
+          id="status-indicator"
+          class="status-indicator status-neutral"
+          aria-hidden="true"
+        ></span>
+
+        <span id="status-text">
+          Ready. Add a rigid body to begin building the model.
+        </span>
+      </div>
+
+      <div class="status-details">
+        <span id="object-count">0 objects</span>
+        <span id="selection-status">Nothing selected</span>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="js/statics/app.js"></script>
+</body>
+</html>
