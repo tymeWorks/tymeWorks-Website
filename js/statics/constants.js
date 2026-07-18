@@ -10,6 +10,8 @@
 export const OBJECT_TYPES = Object.freeze({
   GROUND: "ground",
   RIGID_BODY: "rigid-body",
+  PIN_SUPPORT: "pin-support",
+  ROLLER_SUPPORT: "roller-support",
 });
 
 export const SCENE_SIZE = Object.freeze({
@@ -37,3 +39,8 @@ export const DEFAULT_BODY = Object.freeze({
 export const SCENE_MARGIN = 40;
 
 export const BODY_GROUND_CLEARANCE = 45;
+
+export const SUPPORT_PLACEMENT = Object.freeze({
+  bodyHitTolerance: 18,
+  minimumSpacing: 42,
+});
