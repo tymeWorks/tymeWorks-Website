@@ -184,7 +184,16 @@ function updateEmptySceneMessage(objects) {
     (object) => object.type === OBJECT_TYPES.RIGID_BODY
   );
 
-  emptySceneMessage.hidden = hasBody;
+  /*
+   * The hidden property is not consistently applied to SVG groups
+   * across browsers, so the display state is controlled explicitly.
+   */
+  emptySceneMessage.style.display = hasBody ? "none" : "";
+
+  emptySceneMessage.setAttribute(
+    "aria-hidden",
+    String(hasBody)
+  );
 }
 
 function updateObjectCount(objects) {
