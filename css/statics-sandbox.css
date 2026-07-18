@@ -562,3 +562,63 @@ button {
     display: none;
   }
 }
+/* Milestone 2: visual model objects */
+
+#empty-scene-message[hidden] {
+  display: none;
+}
+
+.scene-object {
+  pointer-events: visiblePainted;
+}
+
+.scene-ground-line {
+  stroke: #484844;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.scene-ground-hatch {
+  stroke: #777770;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.scene-ground-label {
+  fill: #777770;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.scene-rigid-body {
+  cursor: default;
+}
+
+.rigid-body-shape {
+  fill: #ffffff;
+  stroke: #292927;
+  stroke-width: 4;
+  filter: drop-shadow(
+    0 13px 13px rgba(0, 0, 0, 0.09)
+  );
+}
+
+.rigid-body-label {
+  fill: #20201e;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.rigid-body-subtitle {
+  fill: #85857e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rigid-body-center {
+  fill: var(--accent);
+  stroke: #ffffff;
+  stroke-width: 2;
+}
