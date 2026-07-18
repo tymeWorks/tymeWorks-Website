@@ -664,3 +664,42 @@ button {
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
+
+
+/* Milestone 2C-A: point-force objects */
+
+.scene-point-force {
+  cursor: default;
+}
+
+.force-shaft {
+  fill: none;
+  stroke: #c63f3f;
+  stroke-width: 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.force-arrow-head {
+  fill: #c63f3f;
+  stroke: #c63f3f;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.force-application-point {
+  fill: #c63f3f;
+  stroke: #ffffff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.force-label {
+  fill: #a52f2f;
+  font-size: 14px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
