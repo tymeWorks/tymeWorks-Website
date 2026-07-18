@@ -3,6 +3,7 @@
 import { OBJECT_TYPES } from "./constants.js";
 
 import {
+  addPointForceAt,
   addRigidBodyAt,
   addSupportAt,
   getModelSnapshot,
@@ -44,6 +45,7 @@ const toolLabels = {
 const supportToolNames = new Set([
   "pin-support",
   "roller-support",
+  "force",
 ]);
 
 let activeTool = "select";
@@ -124,12 +126,19 @@ function handleSceneClick(event) {
   }
 
   if (activeTool === "roller-support") {
-    placeSupport(
-      OBJECT_TYPES.ROLLER_SUPPORT,
-      scenePoint
-    );
+  placeSupport(
+    OBJECT_TYPES.ROLLER_SUPPORT,
+    scenePoint
+  );
+
+    return;
   }
-}
+  
+  if (activeTool === "force") {
+    placePointForce(scenePoint);
+  }
+
+  
 
 function placeRigidBody(scenePoint) {
   const result = addRigidBodyAt(
@@ -167,6 +176,25 @@ function placeSupport(
   setStatus(result.message, "success");
 }
 
+
+function placePointForce(scenePoint) {
+  const result = addPointForceAt(
+    scenePoint.x,
+    scenePoint.y
+  );
+
+  if (!result.ok) {
+    setStatus(result.message, "warning");
+    return;
+  }
+
+  renderCurrentModel();
+  setActiveTool("select");
+  setStatus(result.message, "success");
+}
+
+  
+
 function setActiveTool(toolName) {
   if (toolName === "body" && hasRigidBody()) {
     setStatus(
@@ -177,12 +205,12 @@ function setActiveTool(toolName) {
     return;
   }
 
-  if (
-    supportToolNames.has(toolName) &&
+   if (
+    bodyDependentToolNames.has(toolName) &&
     !hasRigidBody()
   ) {
     setStatus(
-      "Add a rigid body before selecting a support tool.",
+      "Add a rigid body before selecting a this tool.",
       "warning"
     );
 
@@ -235,7 +263,7 @@ function getToolInstruction(toolName) {
       "Click on the rigid body. The roller support will snap to its bottom edge.",
 
     force:
-      "Force placement will be implemented after support objects.",
+      "Click on the rigid body to apply a 10 kN downward point force.",
 
     moment:
       "Applied-moment placement will be implemented after support objects.",
