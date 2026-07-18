@@ -1,7 +1,10 @@
 "use strict";
 
+import { OBJECT_TYPES } from "./constants.js";
+
 import {
   addRigidBodyAt,
+  addSupportAt,
   getModelSnapshot,
   hasRigidBody,
   initializeDefaultModel,
@@ -38,6 +41,11 @@ const toolLabels = {
   delete: "Delete",
 };
 
+const supportToolNames = new Set([
+  "pin-support",
+  "roller-support",
+]);
+
 let activeTool = "select";
 let freeBodyDiagramEnabled = false;
 
@@ -54,7 +62,7 @@ function initializeApplication() {
   setActiveTool("select");
 
   setStatus(
-    "Default model loaded. The body and ground are ready for inspection.",
+    "Default model loaded. Add supports to begin constraining the rigid body.",
     "success"
   );
 }
@@ -90,10 +98,6 @@ function initializeSceneInteraction() {
 }
 
 function handleSceneClick(event) {
-  if (activeTool !== "body") {
-    return;
-  }
-
   const scenePoint = getScenePoint(event);
 
   if (!scenePoint) {
@@ -105,7 +109,50 @@ function handleSceneClick(event) {
     return;
   }
 
+  if (activeTool === "body") {
+    placeRigidBody(scenePoint);
+    return;
+  }
+
+  if (activeTool === "pin-support") {
+    placeSupport(
+      OBJECT_TYPES.PIN_SUPPORT,
+      scenePoint
+    );
+
+    return;
+  }
+
+  if (activeTool === "roller-support") {
+    placeSupport(
+      OBJECT_TYPES.ROLLER_SUPPORT,
+      scenePoint
+    );
+  }
+}
+
+function placeRigidBody(scenePoint) {
   const result = addRigidBodyAt(
+    scenePoint.x,
+    scenePoint.y
+  );
+
+  if (!result.ok) {
+    setStatus(result.message, "warning");
+    return;
+  }
+
+  renderCurrentModel();
+  setActiveTool("select");
+  setStatus(result.message, "success");
+}
+
+function placeSupport(
+  supportType,
+  scenePoint
+) {
+  const result = addSupportAt(
+    supportType,
     scenePoint.x,
     scenePoint.y
   );
@@ -129,7 +176,19 @@ function setActiveTool(toolName) {
 
     return;
   }
-  
+
+  if (
+    supportToolNames.has(toolName) &&
+    !hasRigidBody()
+  ) {
+    setStatus(
+      "Add a rigid body before selecting a support tool.",
+      "warning"
+    );
+
+    return;
+  }
+
   activeTool = toolName;
 
   toolButtons.forEach((button) => {
@@ -170,10 +229,10 @@ function getToolInstruction(toolName) {
       "Click inside the model space to place the single rigid body.",
 
     "pin-support":
-      "Pin-support placement will be implemented in the next part of Milestone 2.",
+      "Click on the rigid body. The pin support will snap to its bottom edge.",
 
     "roller-support":
-      "Roller-support placement will be implemented in the next part of Milestone 2.",
+      "Click on the rigid body. The roller support will snap to its bottom edge.",
 
     force:
       "Force placement will be implemented after support objects.",
@@ -200,7 +259,7 @@ function handleSolve() {
 
 function handleReset() {
   const userConfirmed = window.confirm(
-    "Reset the sandbox and remove the rigid body?"
+    "Reset the sandbox and remove all model objects?"
   );
 
   if (!userConfirmed) {
