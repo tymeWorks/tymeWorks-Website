@@ -26,20 +26,37 @@ export function renderModel(modelSnapshot) {
     ? modelSnapshot.objects
     : [];
 
+  const ground = objects.find(
+    (object) => object.type === OBJECT_TYPES.GROUND
+  );
+
+  const body = objects.find(
+    (object) => object.type === OBJECT_TYPES.RIGID_BODY
+  );
+
+  if (ground) {
+    sceneLayer.appendChild(renderGround(ground));
+  }
+
+  if (body) {
+    sceneLayer.appendChild(renderRigidBody(body));
+  }
+
   objects.forEach((object) => {
-    switch (object.type) {
-      case OBJECT_TYPES.GROUND:
-        sceneLayer.appendChild(renderGround(object));
-        break;
+    if (!body || !ground) {
+      return;
+    }
 
-      case OBJECT_TYPES.RIGID_BODY:
-        sceneLayer.appendChild(renderRigidBody(object));
-        break;
+    if (object.type === OBJECT_TYPES.PIN_SUPPORT) {
+      sceneLayer.appendChild(
+        renderPinSupport(object, body, ground)
+      );
+    }
 
-      default:
-        console.warn(
-          `Renderer does not support object type: ${object.type}`
-        );
+    if (object.type === OBJECT_TYPES.ROLLER_SUPPORT) {
+      sceneLayer.appendChild(
+        renderRollerSupport(object, body, ground)
+      );
     }
   });
 
@@ -175,6 +192,199 @@ function renderRigidBody(body) {
   return group;
 }
 
+function renderPinSupport(
+  support,
+  body,
+  ground
+) {
+  const anchor = convertBodyLocalPointToScene(
+    body,
+    support.localX,
+    support.localY
+  );
+
+  const group = createSupportGroup(support);
+
+  const triangleApexY = Math.max(
+    anchor.y + 8,
+    ground.y - 50
+  );
+
+  const triangleBaseY = ground.y - 2;
+  const triangleHalfWidth = 28;
+
+  group.appendChild(
+    createLine(
+      anchor.x,
+      anchor.y,
+      anchor.x,
+      triangleApexY,
+      "support-stem"
+    )
+  );
+
+  const triangle = createSvgElement("path");
+
+  setAttributes(triangle, {
+    d: [
+      `M ${anchor.x} ${triangleApexY}`,
+      `L ${anchor.x - triangleHalfWidth} ${triangleBaseY}`,
+      `L ${anchor.x + triangleHalfWidth} ${triangleBaseY}`,
+      "Z",
+    ].join(" "),
+  });
+
+  triangle.classList.add("support-pin-shape");
+  group.appendChild(triangle);
+
+  group.appendChild(
+    createLine(
+      anchor.x - triangleHalfWidth - 8,
+      triangleBaseY,
+      anchor.x + triangleHalfWidth + 8,
+      triangleBaseY,
+      "support-base-line"
+    )
+  );
+
+  group.appendChild(createSupportAnchor(anchor));
+
+  return group;
+}
+
+function renderRollerSupport(
+  support,
+  body,
+  ground
+) {
+  const anchor = convertBodyLocalPointToScene(
+    body,
+    support.localX,
+    support.localY
+  );
+
+  const group = createSupportGroup(support);
+
+  const plateY = Math.max(
+    anchor.y + 8,
+    ground.y - 35
+  );
+
+  const plateHalfWidth = 28;
+  const rollerRadius = 7;
+  const rollerCenterY = ground.y - rollerRadius;
+
+  group.appendChild(
+    createLine(
+      anchor.x,
+      anchor.y,
+      anchor.x,
+      plateY,
+      "support-stem"
+    )
+  );
+
+  group.appendChild(
+    createLine(
+      anchor.x - plateHalfWidth,
+      plateY,
+      anchor.x + plateHalfWidth,
+      plateY,
+      "support-roller-plate"
+    )
+  );
+
+  [-17, 0, 17].forEach((offsetX) => {
+    const roller = createSvgElement("circle");
+
+    setAttributes(roller, {
+      cx: anchor.x + offsetX,
+      cy: rollerCenterY,
+      r: rollerRadius,
+    });
+
+    roller.classList.add("support-roller-wheel");
+    group.appendChild(roller);
+  });
+
+  group.appendChild(createSupportAnchor(anchor));
+
+  return group;
+}
+
+function createSupportGroup(support) {
+  const group = createSvgElement("g");
+
+  group.classList.add(
+    "scene-object",
+    "scene-support"
+  );
+
+  group.dataset.objectId = support.id;
+  group.dataset.objectType = support.type;
+
+  return group;
+}
+
+function createSupportAnchor(anchor) {
+  const marker = createSvgElement("circle");
+
+  setAttributes(marker, {
+    cx: anchor.x,
+    cy: anchor.y,
+    r: 5,
+  });
+
+  marker.classList.add("support-anchor");
+
+  return marker;
+}
+
+function createLine(
+  x1,
+  y1,
+  x2,
+  y2,
+  className
+) {
+  const line = createSvgElement("line");
+
+  setAttributes(line, {
+    x1,
+    y1,
+    x2,
+    y2,
+  });
+
+  line.classList.add(className);
+
+  return line;
+}
+
+function convertBodyLocalPointToScene(
+  body,
+  localX,
+  localY
+) {
+  const angleRadians =
+    (body.rotation * Math.PI) / 180;
+
+  const cosine = Math.cos(angleRadians);
+  const sine = Math.sin(angleRadians);
+
+  return {
+    x:
+      body.centerX +
+      localX * cosine -
+      localY * sine,
+
+    y:
+      body.centerY +
+      localX * sine +
+      localY * cosine,
+  };
+}
+
 function updateEmptySceneMessage(objects) {
   if (!emptySceneMessage) {
     return;
@@ -184,10 +394,6 @@ function updateEmptySceneMessage(objects) {
     (object) => object.type === OBJECT_TYPES.RIGID_BODY
   );
 
-  /*
-   * The hidden property is not consistently applied to SVG groups
-   * across browsers, so the display state is controlled explicitly.
-   */
   emptySceneMessage.style.display = hasBody ? "none" : "";
 
   emptySceneMessage.setAttribute(
