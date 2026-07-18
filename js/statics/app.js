@@ -1,14 +1,31 @@
 "use strict";
 
+import {
+  addRigidBodyAt,
+  getModelSnapshot,
+  initializeDefaultModel,
+  resetModel,
+} from "./model.js";
+
+import { renderModel } from "./renderer.js";
+
 const toolButtons = document.querySelectorAll("[data-tool]");
 
-const activeToolLabel = document.getElementById("active-tool-label");
+const activeToolLabel = document.getElementById(
+  "active-tool-label"
+);
 const statusText = document.getElementById("status-text");
-const statusIndicator = document.getElementById("status-indicator");
+const statusIndicator = document.getElementById(
+  "status-indicator"
+);
 
 const solveButton = document.getElementById("solve-button");
 const resetButton = document.getElementById("reset-button");
 const fbdButton = document.getElementById("fbd-button");
+
+const sandboxCanvas = document.getElementById(
+  "sandbox-canvas"
+);
 
 const toolLabels = {
   select: "Select",
@@ -28,12 +45,16 @@ initializeApplication();
 function initializeApplication() {
   initializeToolButtons();
   initializeActionButtons();
+  initializeSceneInteraction();
+
+  initializeDefaultModel();
+  renderCurrentModel();
 
   setActiveTool("select");
 
   setStatus(
-    "Ready. Add a rigid body to begin building the model.",
-    "neutral"
+    "Default model loaded. The body and ground are ready for inspection.",
+    "success"
   );
 }
 
@@ -54,72 +75,141 @@ function initializeToolButtons() {
 function initializeActionButtons() {
   solveButton?.addEventListener("click", handleSolve);
   resetButton?.addEventListener("click", handleReset);
-  fbdButton?.addEventListener("click", toggleFreeBodyDiagram);
+  fbdButton?.addEventListener(
+    "click",
+    toggleFreeBodyDiagram
+  );
+}
+
+function initializeSceneInteraction() {
+  sandboxCanvas?.addEventListener(
+    "click",
+    handleSceneClick
+  );
+}
+
+function handleSceneClick(event) {
+  if (activeTool !== "body") {
+    return;
+  }
+
+  const scenePoint = getScenePoint(event);
+
+  if (!scenePoint) {
+    setStatus(
+      "The selected scene position could not be determined.",
+      "error"
+    );
+
+    return;
+  }
+
+  const result = addRigidBodyAt(
+    scenePoint.x,
+    scenePoint.y
+  );
+
+  if (!result.ok) {
+    setStatus(result.message, "warning");
+    return;
+  }
+
+  renderCurrentModel();
+  setActiveTool("select");
+  setStatus(result.message, "success");
 }
 
 function setActiveTool(toolName) {
   activeTool = toolName;
 
   toolButtons.forEach((button) => {
-    const isActive = button.dataset.tool === toolName;
+    const isActive =
+      button.dataset.tool === toolName;
 
-    button.classList.toggle("is-active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
+    button.classList.toggle(
+      "is-active",
+      isActive
+    );
+
+    button.setAttribute(
+      "aria-pressed",
+      String(isActive)
+    );
   });
 
-  const readableToolName = toolLabels[toolName] ?? toolName;
+  const readableToolName =
+    toolLabels[toolName] ?? toolName;
 
   if (activeToolLabel) {
-    activeToolLabel.textContent = `${readableToolName} tool active`;
+    activeToolLabel.textContent =
+      `${readableToolName} tool active`;
   }
 
-  setStatus(getToolInstruction(toolName), "info");
+  setStatus(
+    getToolInstruction(toolName),
+    "info"
+  );
 }
 
 function getToolInstruction(toolName) {
   const instructions = {
-    select: "Select an object in the scene to inspect or move it.",
-    body: "Click inside the model space to add a rigid body.",
+    select:
+      "Select an object in the scene to inspect or move it.",
+
+    body:
+      "Click inside the model space to place the single rigid body.",
+
     "pin-support":
-      "Select a rigid body and choose where to attach the pin support.",
+      "Pin-support placement will be implemented in the next part of Milestone 2.",
+
     "roller-support":
-      "Select a rigid body and choose where to attach the roller support.",
+      "Roller-support placement will be implemented in the next part of Milestone 2.",
+
     force:
-      "Select a rigid body and choose the point where the force will act.",
+      "Force placement will be implemented after support objects.",
+
     moment:
-      "Select a rigid body and choose where the applied moment will be shown.",
-    delete: "Select an object to remove it from the model.",
+      "Applied-moment placement will be implemented after support objects.",
+
+    delete:
+      "Object deletion will be implemented with object selection in Milestone 3.",
   };
 
-  return instructions[toolName] ?? "Choose a modeling tool.";
+  return (
+    instructions[toolName] ??
+    "Choose a modeling tool."
+  );
 }
 
 function handleSolve() {
   setStatus(
-    "The equilibrium solver has not been connected yet. This will be implemented in Milestone 5.",
+    "The equilibrium solver has not been connected yet. It is planned for Milestone 5.",
     "warning"
   );
 }
 
 function handleReset() {
   const userConfirmed = window.confirm(
-    "Reset the sandbox and remove all model objects?"
+    "Reset the sandbox and remove the rigid body?"
   );
 
   if (!userConfirmed) {
     return;
   }
 
+  resetModel();
+  renderCurrentModel();
   setActiveTool("select");
 
   setStatus(
-    "The scene is already empty. Nothing was removed.",
+    "The model was reset. The fixed ground remains available.",
     "neutral"
   );
 }
 
 function toggleFreeBodyDiagram() {
-  freeBodyDiagramEnabled = !freeBodyDiagramEnabled;
+  freeBodyDiagramEnabled =
+    !freeBodyDiagramEnabled;
 
   fbdButton?.setAttribute(
     "aria-pressed",
@@ -128,14 +218,49 @@ function toggleFreeBodyDiagram() {
 
   if (freeBodyDiagramEnabled) {
     setStatus(
-      "Free-body-diagram mode enabled. Reaction visualization will be added in a later milestone.",
+      "Free-body-diagram mode enabled. Reaction visualization will be added later.",
       "info"
     );
 
     return;
   }
 
-  setStatus("Free-body-diagram mode disabled.", "neutral");
+  setStatus(
+    "Free-body-diagram mode disabled.",
+    "neutral"
+  );
+}
+
+function renderCurrentModel() {
+  const modelSnapshot = getModelSnapshot();
+  renderModel(modelSnapshot);
+}
+
+function getScenePoint(event) {
+  if (!sandboxCanvas) {
+    return null;
+  }
+
+  const transformationMatrix =
+    sandboxCanvas.getScreenCTM();
+
+  if (!transformationMatrix) {
+    return null;
+  }
+
+  const svgPoint = sandboxCanvas.createSVGPoint();
+
+  svgPoint.x = event.clientX;
+  svgPoint.y = event.clientY;
+
+  const transformedPoint = svgPoint.matrixTransform(
+    transformationMatrix.inverse()
+  );
+
+  return {
+    x: transformedPoint.x,
+    y: transformedPoint.y,
+  };
 }
 
 function setStatus(message, type = "neutral") {
