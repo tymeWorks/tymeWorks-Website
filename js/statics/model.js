@@ -15,6 +15,7 @@ import {
 import {
   createGround,
   createPinSupport,
+  createPointForce,
   createRigidBody,
   createRollerSupport,
 } from "./objects.js";
