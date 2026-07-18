@@ -3,6 +3,7 @@
 import {
   addRigidBodyAt,
   getModelSnapshot,
+  hasRigidBody,
   initializeDefaultModel,
   resetModel,
 } from "./model.js";
@@ -120,6 +121,15 @@ function handleSceneClick(event) {
 }
 
 function setActiveTool(toolName) {
+  if (toolName === "body" && hasRigidBody()) {
+    setStatus(
+      "Statics Sandbox v0.1 supports only one rigid body. Reset the scene before placing another body.",
+      "warning"
+    );
+
+    return;
+  }
+  
   activeTool = toolName;
 
   toolButtons.forEach((button) => {
